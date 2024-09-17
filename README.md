@@ -1,4 +1,4 @@
-Certainly! Let’s restart the setup with all the corrections in place. We’ll go through creating a complete FastAPI project with CRUD operations, including setting up the virtual environment, installing dependencies, and initializing the database.
+We’ll go through creating a complete FastAPI project with CRUD operations, including setting up the virtual environment, installing dependencies, and initializing the database.
 
 ### Complete Setup for FastAPI CRUD API
 
