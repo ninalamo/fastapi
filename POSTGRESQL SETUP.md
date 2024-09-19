@@ -23,12 +23,12 @@ docker run --name my_postgres -e POSTGRES_USER=myuser -e POSTGRES_PASSWORD=mypas
 
 ### Step 3: Update Your Python Code for PostgreSQL
 
-In your SQLAlchemy setup, modify the `SQLALCHEMY_DATABASE_URL` to connect to the PostgreSQL database running in the Docker container.
+In your SQLAlchemy setup, modify the `SQLALCHEMY_DATABASE_URL` to connect to the PostgreSQL database running in the Docker container. (This is our ORM -- like Dapper or EntityFramework)
 
 Install the necessary PostgreSQL driver for Python:
 
 ```bash
-pip install psycopg2
+pip install psycopg2 #or psycopg2-binary (this is preffered)
 ```
 
 Then, modify your `SQLALCHEMY_DATABASE_URL` to connect to PostgreSQL:
@@ -38,7 +38,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 
-# Use the following URL format: 
+# Use the following URL format:
 # "postgresql://<username>:<password>@<host>:<port>/<database>"
 
 # Update the connection string to connect to your Docker container
@@ -72,6 +72,8 @@ The container should be listed as running, and you should be able to interact wi
 If you want to automate the setup, you can use **Docker Compose**. Here's a `docker-compose.yml` file that spins up a PostgreSQL container:
 
 ```yaml
+
+#this is a sample -- See actuald docker-compose.yml
 version: '3'
 services:
   postgres:
