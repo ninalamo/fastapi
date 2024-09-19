@@ -129,7 +129,7 @@ from .database import Base
 
 class Item(Base):
     __tablename__ = "items"
-    
+
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, index=True)
     description = Column(String, index=True)
@@ -253,179 +253,194 @@ Visit `http://localhost:8000/docs` to access the API.
 
 Let me know if you encounter any issues or have further questions!
 
-====================================================================================================================================================
+<hr/>
 
-To apply **K-Means clustering** with **GIS data**, we combine geospatial data (e.g., latitude and longitude coordinates) with the K-Means algorithm to group spatial points based on proximity. In this scenario, you might cluster locations (e.g., cities, delivery points, or stores) to identify regional groupings or patterns.
+To modify the FastAPI CRUD API setup to use PostgreSQL instead of SQLite, you'll need to make adjustments to the `app/database.py`, update the project’s dependencies to include `psycopg2`, and ensure that your database credentials are securely managed.
 
-### Steps to Apply K-Means Clustering with GIS:
+### Steps to Use PostgreSQL with FastAPI
 
-1. **Collect Geospatial Data**: 
-   Obtain data with geographical coordinates (latitude and longitude). This data can represent anything from store locations to points of interest in a city.
+#### 1. **Install PostgreSQL and psycopg2**
 
-2. **Preprocess the Data**:
-   Ensure the data is cleaned and ready for clustering (remove missing values, handle outliers, etc.).
+Make sure PostgreSQL is installed on your system. You can download it from [here](https://www.postgresql.org/download/).
 
-3. **Apply K-Means Clustering**:
-   Use K-Means to group the locations based on their proximity to one another.
+Next, install `psycopg2`, the PostgreSQL adapter for Python, along with other dependencies:
 
-4. **Visualize the Clusters on a Map**:
-   Visualize the clusters using libraries like `geopandas` and `matplotlib` for maps or `folium` for interactive maps.
-
-### Example: K-Means Clustering with Geospatial Data
-
-#### Step 1: Install Required Libraries
-
-You'll need the following Python libraries:
 ```bash
-pip install pandas numpy sklearn geopandas matplotlib folium
+pip install psycopg2-binary
 ```
 
-#### Step 2: Example Geospatial Dataset
+Update your `requirements.txt` to include `psycopg2-binary`:
 
-Let's create a sample dataset with coordinates representing some locations. You can also use real-world data from sources like OpenStreetMap, Google Maps API, or public datasets.
+```bash
+pip freeze > requirements.txt
+```
+
+#### 2. **Update `app/database.py`**
+
+Modify the `SQLALCHEMY_DATABASE_URL` to use PostgreSQL instead of SQLite. You'll also need to define environment variables for your database credentials.
+
+Here’s the updated `app/database.py`:
 
 ```python
-import pandas as pd
-import numpy as np
+import os
+from sqlalchemy import create_engine
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import sessionmaker
+from dotenv import load_dotenv
 
-# Sample dataset with geospatial coordinates (latitude, longitude)
-data = {
-    'location': ['Location1', 'Location2', 'Location3', 'Location4', 'Location5', 
-                 'Location6', 'Location7', 'Location8', 'Location9', 'Location10'],
-    'latitude': [37.7749, 34.0522, 40.7128, 41.8781, 47.6062, 29.7604, 25.7617, 
-                 39.7392, 32.7767, 36.1627],
-    'longitude': [-122.4194, -118.2437, -74.0060, -87.6298, -122.3321, -95.3698, 
-                  -80.1918, -104.9903, -96.7970, -86.7816]
-}
+# Load environment variables from a .env file
+load_dotenv()
 
-# Create a DataFrame
-df = pd.DataFrame(data)
-print(df.head())
+# Database URL format for PostgreSQL
+POSTGRES_USER = os.getenv("POSTGRES_USER", "postgres")
+POSTGRES_PASSWORD = os.getenv("POSTGRES_PASSWORD", "yourpassword")
+POSTGRES_DB = os.getenv("POSTGRES_DB", "yourdatabase")
+POSTGRES_HOST = os.getenv("POSTGRES_HOST", "localhost")
+POSTGRES_PORT = os.getenv("POSTGRES_PORT", "5432")
+
+SQLALCHEMY_DATABASE_URL = f"postgresql://{POSTGRES_USER}:{POSTGRES_PASSWORD}@{POSTGRES_HOST}:{POSTGRES_PORT}/{POSTGRES_DB}"
+
+# Create the engine and session
+engine = create_engine(SQLALCHEMY_DATABASE_URL)
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+
+Base = declarative_base()
+
+def init_db():
+    # Create all tables in the database
+    Base.metadata.create_all(bind=engine)
 ```
 
-#### Step 3: Preprocess the Data for K-Means
+#### 3. **Set Environment Variables**
 
-K-Means requires numeric data, so we'll work with latitude and longitude coordinates directly. Normally, you'd need to consider scaling or projecting the coordinates for better clustering results.
+Create a `.env` file in the root of your project to store your PostgreSQL credentials:
 
-```python
-from sklearn.cluster import KMeans
-
-# Extract the latitude and longitude into a new variable
-coords = df[['latitude', 'longitude']].values
-
-# Specify the number of clusters (e.g., 3)
-kmeans = KMeans(n_clusters=3, random_state=42)
-
-# Fit the KMeans model and predict the clusters
-df['cluster'] = kmeans.fit_predict(coords)
-
-# Show the resulting dataframe with cluster assignments
-print(df)
+```
+POSTGRES_USER=postgres
+POSTGRES_PASSWORD=yourpassword
+POSTGRES_DB=yourdatabase
+POSTGRES_HOST=localhost
+POSTGRES_PORT=5432
 ```
 
-#### Step 4: Visualize the Clusters on a Map
+Make sure to add the `.env` file to your `.gitignore` to avoid committing sensitive credentials.
 
-To visualize the clusters, we can use `geopandas` for static maps or `folium` for interactive maps.
+#### 4. **Run PostgreSQL Locally (Optional)**
 
-##### Using `geopandas` and `matplotlib` for Static Maps
+If you're running PostgreSQL locally using Docker, you can define a service in `docker-compose.yml`:
 
-```python
-import geopandas as gpd
-import matplotlib.pyplot as plt
+```yaml
+version: '3.8'
+services:
+  db:
+    image: postgres:13
+    restart: always
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: yourpassword
+      POSTGRES_DB: yourdatabase
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+  web:
+    build: .
+    depends_on:
+      - db
+    ports:
+      - "8000:8000"
+    volumes:
+      - .:/app
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: yourpassword
+      POSTGRES_DB: yourdatabase
+      POSTGRES_HOST: db
+      POSTGRES_PORT: 5432
 
-# Create a GeoDataFrame
-gdf = gpd.GeoDataFrame(df, geometry=gpd.points_from_xy(df.longitude, df.latitude))
-
-# Plot the clusters with different colors
-gdf.plot(column='cluster', cmap='viridis', legend=True, figsize=(10, 6))
-plt.title('K-Means Clustering of Locations')
-plt.xlabel('Longitude')
-plt.ylabel('Latitude')
-plt.show()
+volumes:
+  postgres_data:
 ```
 
-##### Using `folium` for Interactive Maps
+#### 5. **Apply Database Migrations**
 
-```python
-import folium
+In a production setup, instead of using `Base.metadata.create_all()` directly, it's better to use a database migration tool like **Alembic** to handle schema changes.
 
-# Initialize a Folium map centered around the average latitude and longitude
-m = folium.Map(location=[df['latitude'].mean(), df['longitude'].mean()], zoom_start=5)
+First, install Alembic:
 
-# Define colors for clusters
-cluster_colors = ['red', 'blue', 'green']
-
-# Add markers for each location
-for i, row in df.iterrows():
-    folium.Marker(
-        location=[row['latitude'], row['longitude']],
-        popup=row['location'],
-        icon=folium.Icon(color=cluster_colors[row['cluster']])
-    ).add_to(m)
-
-# Show the interactive map
-m.save("map.html")  # This saves the map to an HTML file
-m  # If you're in a Jupyter notebook, this will display the map directly
+```bash
+pip install alembic
 ```
 
-### Step 5: Interpret the Results
+Then, initialize Alembic in your project:
 
-Once the clusters are assigned and visualized, you can:
-- Identify which locations are grouped together based on their geographic proximity.
-- Analyze the clusters to understand regional patterns, e.g., which cities are grouped into certain regions or zones.
-- Use this information for decision-making in business (e.g., optimizing delivery routes, store placements).
-
-### Full Example Code
-
-```python
-import pandas as pd
-import numpy as np
-from sklearn.cluster import KMeans
-import geopandas as gpd
-import matplotlib.pyplot as plt
-import folium
-
-# Step 1: Create a sample dataset with latitude and longitude
-data = {
-    'location': ['Location1', 'Location2', 'Location3', 'Location4', 'Location5', 
-                 'Location6', 'Location7', 'Location8', 'Location9', 'Location10'],
-    'latitude': [37.7749, 34.0522, 40.7128, 41.8781, 47.6062, 29.7604, 25.7617, 
-                 39.7392, 32.7767, 36.1627],
-    'longitude': [-122.4194, -118.2437, -74.0060, -87.6298, -122.3321, -95.3698, 
-                  -80.1918, -104.9903, -96.7970, -86.7816]
-}
-
-df = pd.DataFrame(data)
-
-# Step 2: Prepare data for K-Means clustering
-coords = df[['latitude', 'longitude']].values
-kmeans = KMeans(n_clusters=3, random_state=42)
-df['cluster'] = kmeans.fit_predict(coords)
-
-# Step 3: Visualize using geopandas and matplotlib
-gdf = gpd.GeoDataFrame(df, geometry=gpd.points_from_xy(df.longitude, df.latitude))
-gdf.plot(column='cluster', cmap='viridis', legend=True, figsize=(10, 6))
-plt.title('K-Means Clustering of Locations')
-plt.xlabel('Longitude')
-plt.ylabel('Latitude')
-plt.show()
-
-# Step 4: Visualize interactively using folium
-m = folium.Map(location=[df['latitude'].mean(), df['longitude'].mean()], zoom_start=5)
-cluster_colors = ['red', 'blue', 'green']
-for i, row in df.iterrows():
-    folium.Marker(
-        location=[row['latitude'], row['longitude']],
-        popup=row['location'],
-        icon=folium.Icon(color=cluster_colors[row['cluster']])
-    ).add_to(m)
-m.save("map.html")
-m  # If in a Jupyter notebook, this will display the map
+```bash
+alembic init alembic
 ```
 
-### Summary
+Next, configure Alembic to connect to your PostgreSQL database by editing `alembic.ini`:
 
-By using K-Means clustering with GIS data:
-- You can group locations based on geographical proximity.
-- It’s a powerful tool for spatial analysis in areas such as urban planning, delivery route optimization, and customer segmentation.
-- The clusters can be easily visualized on a map, which helps in decision-making.
+```ini
+sqlalchemy.url = postgresql://postgres:yourpassword@localhost:5432/yourdatabase
+```
+
+You can now create migrations with:
+
+```bash
+alembic revision --autogenerate -m "Initial migration"
+alembic upgrade head
+```
+
+#### 6. **Run the Application**
+
+Start PostgreSQL, then run your FastAPI application:
+
+```bash
+uvicorn app.main:app --reload
+```
+
+You can now access the API at `http://127.0.0.1:8000/docs` and see that the application is now connected to PostgreSQL.
+
+#### 7. **Dockerize with PostgreSQL**
+
+Update your `Dockerfile` to ensure it works with PostgreSQL and Docker Compose.
+
+Here’s an updated `Dockerfile` that includes PostgreSQL:
+
+```Dockerfile
+# Use a base image with Python 3.9
+FROM python:3.9-slim
+
+# Set the working directory
+WORKDIR /app
+
+# Copy the requirements file
+COPY requirements.txt .
+
+# Install dependencies
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copy the application files
+COPY . .
+
+# Expose port 8000
+EXPOSE 8000
+
+# Command to run the FastAPI application
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+```
+
+To run your application using Docker, make sure Docker is installed and then run:
+
+```bash
+docker-compose up --build
+```
+
+You can now access the API at `http://localhost:8000/docs`.
+
+### Summary of Changes
+- **Database**: PostgreSQL replaces SQLite using `psycopg2` as the driver.
+- **Environment Variables**: Credentials and database configuration are managed through a `.env` file.
+- **Docker**: You can run PostgreSQL and your FastAPI application with Docker Compose for easier setup and deployment.
+
+This setup enables a full CRUD API connected to a PostgreSQL database and ready for use in local or Docker environments. Let me know if you need further details!
