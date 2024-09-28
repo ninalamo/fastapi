@@ -2,6 +2,8 @@ We’ll go through creating a complete FastAPI project with CRUD operations, inc
 
 ### Complete Setup for FastAPI CRUD API
 
+
+aadfadsfadsf
 #### 1. **Create Project Directory**
 
 ```bash
