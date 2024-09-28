@@ -1,5 +1,5 @@
 We’ll go through creating a complete FastAPI project with CRUD operations, including setting up the virtual environment, installing dependencies, and initializing the database.
-
+gasasg
 ### Complete Setup for FastAPI CRUD API
 
 
